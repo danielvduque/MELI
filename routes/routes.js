@@ -14,6 +14,8 @@ function calculateTrilateration(x1, y1, x2, y2, x3, y3, r1, r2, r3) {
 }
 
 function getLocations(distances) {
+    // validar array floats
+    /* 1: kenobi, 2: skywalker, 3: sato */
     const x1 = parseFloat(process.env.KENOBI_X);
     const y1 = parseFloat(process.env.KENOBI_Y);
     const x2 = parseFloat(process.env.SKYWALKER_X);
@@ -27,11 +29,32 @@ function getLocations(distances) {
     return calculateTrilateration(x1, y1, x2, y2, x3, y3, r1, r2, r3);
 }
 
-function getMessage() {
+function getMessage(messages) {
+    // validar array strings
+    let tempWords = [];
+    let words = [];
+
+    messages.forEach(message => {
+        message.forEach((word,index) => {
+            if(word === '')
+                return;
+
+            if(tempWords.filter(words => words.word === word).length < 1) { // si no está en el arreglo agregar
+                tempWords.push({word: word, position: index});
+            }
+        });
+    });
+
+    tempWords = tempWords.sort((a, b) => Number(a.position) - Number(b.position)); // orden según la posicion
+    words = tempWords.map(words => words.word);
+
+    const message = words.join(" ");
+    return message;
 }
 
 router.post('/topsecret', (req, res) => {
     let r1, r2, r3;
+    let error = false;
 
     const satellites = req.body.satellites;
     satellites.forEach(sat => {
@@ -46,22 +69,35 @@ router.post('/topsecret', (req, res) => {
                 r3 = sat.distance;
                 break;
             default:
+                error = true;
                 break;
         }
     });
 
     const distances = [r1, r2, r3];
-    console.log(distances);
+    
+    /* get messages from body */
+    const messages = satellites.map(sat => sat.message);
     const { x, y } = getLocations(distances);
+    const message = getMessage(messages);
 
+    if(isNaN(x) || isNaN(y)){
+        error = true;
+    }
+
+    if(error){
+        res.status(404).json({error: "Non processable"});
+        return;
+    }
+    
     res.status(200).json({
         position: {
             x: x,
             y: y
         },
-        message: 'test message'
+        message: message
     });
-
+    
 });
 
 module.exports = router;
