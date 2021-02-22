@@ -9,7 +9,10 @@ dotenv.config();
 // Support post requests - json 
 app.use(bodyParser.json());
 
-const port = process.env.PORT;
+// Google app engine 
+app.set('trust proxy', true);
+
+const port = process.env.PORT || 8081;
 
 // Server
 app.listen(port, () => {

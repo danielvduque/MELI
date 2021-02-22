@@ -39,13 +39,13 @@ function getMessage(messages) {
             if(word === '')
                 return;
 
-            if(tempWords.filter(words => words.word === word).length < 1) { // si no está en el arreglo agregar
+            if(tempWords.filter(tempWord => tempWord.word === word).length < 1) { // si no está en el arreglo -words- agregar palabra con la posicion
                 tempWords.push({word: word, position: index});
             }
         });
     });
 
-    tempWords = tempWords.sort((a, b) => Number(a.position) - Number(b.position)); // orden según la posicion
+    tempWords = tempWords.sort((a, b) => Number(a.position) - Number(b.position)); // ordenar según la posicion
     words = tempWords.map(words => words.word);
 
     const message = words.join(" ");
