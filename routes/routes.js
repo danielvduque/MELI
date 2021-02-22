@@ -1,5 +1,13 @@
 const express = require('express');
 const router = express.Router();
+const redis = require('redis');
+
+// redis
+const REDISHOST = process.env.REDISHOST;
+const REDISPORT = process.env.REDISPORT;
+
+const redis_client = redis.createClient(REDISPORT, REDISHOST);
+redis_client.on('error', (err) => console.error('REDIS ERROR: ', err));
 
 /*
     https://gist.github.com/kdzwinel/8235348
@@ -48,7 +56,7 @@ function getMessage(messages) {
     tempWords = tempWords.sort((a, b) => Number(a.position) - Number(b.position)); // ordenar según la posicion
     words = tempWords.map(words => words.word);
 
-    const message = words.join(" ");
+    const message = words.join(' ');
     return message;
 }
 
@@ -86,7 +94,7 @@ router.post('/topsecret', (req, res) => {
     }
 
     if(error){
-        res.status(404).json({error: "Non processable"});
+        res.status(404).json({error: 'Non processable'});
         return;
     }
     
@@ -99,5 +107,65 @@ router.post('/topsecret', (req, res) => {
     });
     
 });
+
+router.post('/topsecret_split/:satellite', (req, res) => {
+    const satelliteNames = ['kenobi','skywalker','sato'];
+    const {satellite} = req.params;
+    let names = [];
+    let allNames = '';
+
+    if(!satelliteNames.includes(satellite.toLowerCase())){
+        res.sendStatus(400);
+        return;
+    }
+
+    let distanceKey = `${satellite.toLowerCase()}Distance`;
+    let messageKey = `${satellite.toLowerCase()}Message`;
+    let transformedMessage = req.body.message.join('-');
+    console.log(transformedMessage);
+    // let again = transformedMessage.split('-');
+
+    redis_client.get('satellites', (err, value) => {
+        if(value === null){
+            redis_client.set('satellites', satellite, redis.print);
+            return;
+        }
+        
+        names = value.split('-');
+        if(!names.includes(satellite)){
+            names.push(satellite);
+            allNames = names.join("-");
+            console.log(allNames);
+            redis_client.set('satellites', allNames, redis.print);
+        }
+    });
+
+    redis_client.set(distanceKey, req.body.distance, redis.print);
+    redis_client.set(messageKey, transformedMessage, redis.print);
+
+    res.sendStatus(202);
+}); 
+
+router.get('/topsecret_split', (req, res) => {
+    // leer redis, si tiene los 3 satelites procesar y devolver informacion
+    redis_client.get('satellites', (err, value) => {
+        let sats = value.split("-");
+        console.log(sats);
+
+        if(sats.length !== 3){
+            res.status(400).json({message: 'Not enough information.'});
+            return;
+        }
+
+        res.status(200).json({
+            position: {
+                x: 100,
+                y: -75
+            },
+            message: 'message'
+        });
+    });
+});
+
 
 module.exports = router;
