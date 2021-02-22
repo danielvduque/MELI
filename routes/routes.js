@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const redis = require('redis');
+const bluebird = require('bluebird');
 
 // redis
 const REDISHOST = process.env.REDISHOST;
@@ -8,6 +9,10 @@ const REDISPORT = process.env.REDISPORT;
 
 const redis_client = redis.createClient(REDISPORT, REDISHOST);
 redis_client.on('error', (err) => console.error('REDIS ERROR: ', err));
+
+// enable async get for redis
+bluebird.promisifyAll(redis.RedisClient.prototype);
+bluebird.promisifyAll(redis.Multi.prototype);
 
 /*
     https://gist.github.com/kdzwinel/8235348
@@ -108,7 +113,7 @@ router.post('/topsecret', (req, res) => {
     
 });
 
-router.post('/topsecret_split/:satellite', (req, res) => {
+router.post('/topsecret_split/:satellite', async (req, res) => {
     const satelliteNames = ['kenobi','skywalker','sato'];
     const {satellite} = req.params;
     let names = [];
@@ -121,8 +126,7 @@ router.post('/topsecret_split/:satellite', (req, res) => {
 
     let distanceKey = `${satellite.toLowerCase()}Distance`;
     let messageKey = `${satellite.toLowerCase()}Message`;
-    let transformedMessage = req.body.message.join('-');
-    console.log(transformedMessage);
+    let transformedMessage = req.body.message.join('-'); // de array a string separado con guion
     // let again = transformedMessage.split('-');
 
     redis_client.get('satellites', (err, value) => {
@@ -143,24 +147,28 @@ router.post('/topsecret_split/:satellite', (req, res) => {
     redis_client.set(distanceKey, req.body.distance, redis.print);
     redis_client.set(messageKey, transformedMessage, redis.print);
 
-    res.sendStatus(202);
+    res.sendStatus(204);
 }); 
 
 router.get('/topsecret_split', (req, res) => {
-    // leer redis, si tiene los 3 satelites procesar y devolver informacion
-    redis_client.get('satellites', (err, value) => {
-        let sats = value.split("-");
-        console.log(sats);
+    redis_client.get('satellites', async (err, value) => {
+        let sats = value ? value.split("-") : [];
 
         if(sats.length !== 3){
             res.status(400).json({message: 'Not enough information.'});
             return;
         }
 
+        let kenobiDistance = await redis_client.getAsync("kenobiDistance");
+        let skywalkerDistance = await redis_client.getAsync("skywalkerDistance");
+        let satoDistance = await redis_client.getAsync("satoDistance");
+        const distances = [kenobiDistance, skywalkerDistance, satoDistance];
+        const {x,y} = getLocations(distances);
+
         res.status(200).json({
             position: {
-                x: 100,
-                y: -75
+                x: x,
+                y: y
             },
             message: 'message'
         });
