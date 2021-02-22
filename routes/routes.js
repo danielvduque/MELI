@@ -127,7 +127,6 @@ router.post('/topsecret_split/:satellite', async (req, res) => {
     let distanceKey = `${satellite.toLowerCase()}Distance`;
     let messageKey = `${satellite.toLowerCase()}Message`;
     let transformedMessage = req.body.message.join('-'); // de array a string separado con guion
-    // let again = transformedMessage.split('-');
 
     redis_client.get('satellites', (err, value) => {
         if(value === null){
@@ -165,12 +164,23 @@ router.get('/topsecret_split', (req, res) => {
         const distances = [kenobiDistance, skywalkerDistance, satoDistance];
         const {x,y} = getLocations(distances);
 
+        let kenobiMessage = await redis_client.getAsync("kenobiMessage");
+        let skywalkerMessage = await redis_client.getAsync("skywalkerMessage");
+        let satoMessage = await redis_client.getAsync("satoMessage");
+
+        kenobiMessage = kenobiMessage.split('-');
+        skywalkerMessage = skywalkerMessage.split('-');
+        satoMessage = satoMessage.split('-');
+
+        const messages = [kenobiMessage, skywalkerMessage, satoMessage];
+        const message = getMessage(messages);
+
         res.status(200).json({
             position: {
                 x: x,
                 y: y
             },
-            message: 'message'
+            message: message
         });
     });
 });
