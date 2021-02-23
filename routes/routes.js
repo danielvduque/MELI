@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const redis = require('redis');
 const bluebird = require('bluebird');
+const trilateration = require('node-trilateration');
 
 // redis
 const REDISHOST = process.env.REDISHOST;
@@ -13,18 +14,6 @@ redisClient.on('error', (err) => console.error('REDIS ERROR: ', err));
 // enable async get for redis
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
-
-/*
-    https://gist.github.com/kdzwinel/8235348
-*/
-function calculateTrilateration(x1, y1, x2, y2, x3, y3, r1, r2, r3) {
-    const S = (Math.pow(x3, 2.) - Math.pow(x2, 2.) + Math.pow(y3, 2.) - Math.pow(y2, 2.) + Math.pow(r2, 2.) - Math.pow(r3, 2.)) / 2.0;
-    const T = (Math.pow(x1, 2.) - Math.pow(x2, 2.) + Math.pow(y1, 2.) - Math.pow(y2, 2.) + Math.pow(r2, 2.) - Math.pow(r1, 2.)) / 2.0;
-    const y = ((T * (x2 - x3)) - (S * (x2 - x1))) / (((y1 - y2) * (x2 - x3)) - ((y3 - y2) * (x2 - x1)));
-    const x = ((y * (y1 - y2)) - T) / (x2 - x1);
-
-    return { x, y };
-}
 
 function getLocations(distances) {
     // validar array floats
@@ -39,7 +28,17 @@ function getLocations(distances) {
     const r2 = parseFloat(distances[1] ? distances[1] : 0);
     const r3 = parseFloat(distances[2] ? distances[2] : 0);
 
-    return calculateTrilateration(x1, y1, x2, y2, x3, y3, r1, r2, r3);
+    const positions = [
+        {x: x1, y: y1, distance: r1},
+        {x: x2, y: y2, distance: r2},
+        {x: x3, y: y3, distance: r3}
+    ];
+
+    const position = trilateration.calculate(positions);
+    const x = position.x;
+    const y = position.y;
+
+    return {x, y};
 }
 
 function getMessage(messages) {
@@ -138,7 +137,6 @@ router.post('/topsecret_split/:satellite', async (req, res) => {
         if(!names.includes(satellite)){
             names.push(satellite);
             allNames = names.join('-');
-            console.log(allNames);
             redisClient.set('satellites', allNames, redis.print);
         }
     });
@@ -174,6 +172,7 @@ router.get('/topsecret_split', (req, res) => {
 
         const messages = [kenobiMessage, skywalkerMessage, satoMessage];
         const message = getMessage(messages);
+        // redisClient.flushall(); // flush variables so it can be processed again
 
         res.status(200).json({
             position: {

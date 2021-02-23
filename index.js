@@ -12,16 +12,15 @@ app.use(bodyParser.json());
 // Google app engine 
 app.set('trust proxy', true);
 
-const port = process.env.PORT || 8081;
-
 // Server
+const port = process.env.PORT || 8081;
 app.listen(port, () => {
     console.log(`ML solution listening at ${port} port`);
 });
 
 // Test endpoint
 app.get('/', (req, res) => {
-    res.send('Hello World!');
+    res.status(200).send('Desafio - Operación fuego de Quasar.');
 });
 
 // Routes
