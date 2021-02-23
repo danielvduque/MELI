@@ -1,0 +1,153 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Daniel Duque - MELI
+  description: 
+    Operación Fuego de Quasar
+  contact:
+    name: Daniel Duque
+    email: danielvduque@gmail.com
+paths:
+  /topsecret:
+    post:
+      tags:
+        - topsecret
+      summary: "Get (x,y) position using distance from the satellites. Get full message."
+      operationId: topsecret
+      requestBody:
+        description: Satellites. Name, distance and message
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/topsecretBody'
+      responses:
+        "200":
+          description: Ok. Position and message found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TopSecret"
+        "404":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TopSecretError"
+  /topsecret_split/{satellite_name}:
+    post:
+      tags:
+      - topsecret split
+      summary: "Receive distance and message from one satellite."
+      parameters:
+        - in: path
+          name: satellite_name
+          schema:
+            type: string
+          required: true
+          description: Satellite name
+          example: skywalker
+      operationId: split_post
+      requestBody:
+        description: All user data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/topsecretSplitBody'
+      responses:
+        204:
+          description: Everything ok. Data received. No response content
+        400:
+          description: Bad Request. Wrong satellite name
+  /topsecret_split:
+    get:
+      tags:
+      - topsecret split
+      summary: "Get (x,y) position with distance from the satellites already sent. Get full message."
+      operationId: split_get
+      responses:
+        "200":
+          description: Ok. Position and message found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TopSecret"
+        "400":
+          description: Bad Request. Wrong satellite name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Non enough information
+components:
+  schemas:
+    topsecretBody:
+      type: object
+      properties:
+        satellites:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                example: kenobi
+              distance:
+                type: number
+                example: 145.5
+              message:
+                type: array
+                items:
+                  type: string
+                  example: 'mensaje'
+            required:
+            - name
+            - distance
+            - message
+      required:
+      - satellites
+    topsecretSplitBody:
+      type: object
+      properties:
+        satellites:
+          type: array
+          items:
+            type: object
+            properties:
+              distance:
+                type: number
+                example: 145.5
+              message:
+                type: array
+                items:
+                  type: string
+                  example: secreto
+            required:
+            - distance
+            - message
+    TopSecret:
+      type: object
+      properties:
+        position:
+          type: object
+          properties:
+            x:
+              type: number
+              example: 200
+            y:
+              type: number
+              example: -50
+        message:
+          type: string
+          example: "Este es un mensaje"
+    TopSecretError:
+      type: object
+      properties:
+        error:
+          description: Error description
+          type: string
+          example: Non processable
