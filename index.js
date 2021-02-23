@@ -16,7 +16,7 @@ const port = process.env.PORT || 8081;
 
 // Server
 app.listen(port, () => {
-    console.log(`ML solution listening at ${port} port`)
+    console.log(`ML solution listening at ${port} port`);
 });
 
 // Test endpoint
