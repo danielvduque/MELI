@@ -1,0 +1,94 @@
+{
+	"info": {
+		"_postman_id": "36ca93ad-bf2e-409b-b3f0-87801312f941",
+		"name": "Desafio MELI",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "topsecret",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"satellites\": [\n        {\n            \"name\": \"skywalker\",\n            \"distance\": 141.42,\n            \"message\": [\"\",\"\",\"este\",\"\",\"es\",\"\",\"mensaje\",\"secreto\"]\n        },\n        {\n            \"name\": \"kenobi\",\n            \"distance\": 728.01,\n            \"message\": [\"\",\"este\",\"\",\"es\",\"un\",\"mensaje\",\"\"]\n        },\n        {\n            \"name\": \"sato\",\n            \"distance\": 316.22,\n            \"message\": [\"\",\"\",\"\",\"quiza\",\"es\",\"\",\"secreto\",\"\"]\n        }\n    ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://meli-305519.uc.r.appspot.com/topsecret",
+					"protocol": "https",
+					"host": [
+						"meli-305519",
+						"uc",
+						"r",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"topsecret"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET topsecret_split",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://meli-305519.uc.r.appspot.com/topsecret_split",
+					"protocol": "https",
+					"host": [
+						"meli-305519",
+						"uc",
+						"r",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"topsecret_split"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "POST topsecret_split",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"distance\": 728.01,\n    \"message\": [\"\",\"\",\"es\",\"\",\"mensaje\",\"secreto\",\"\"]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://meli-305519.uc.r.appspot.com/topsecret_split/kenobi",
+					"protocol": "https",
+					"host": [
+						"meli-305519",
+						"uc",
+						"r",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"topsecret_split",
+						"kenobi"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
