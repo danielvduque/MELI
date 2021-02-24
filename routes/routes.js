@@ -3,6 +3,7 @@ const router = express.Router();
 const redis = require('redis');
 const bluebird = require('bluebird');
 const trilateration = require('node-trilateration');
+const { check, validationResult } = require('express-validator');
 
 // redis
 const REDISHOST = process.env.REDISHOST;
@@ -16,7 +17,6 @@ bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 
 function getLocations(distances) {
-    // validar array floats
     /* 1: kenobi, 2: skywalker, 3: sato */
     const x1 = parseFloat(process.env.KENOBI_X);
     const y1 = parseFloat(process.env.KENOBI_Y);
@@ -24,9 +24,7 @@ function getLocations(distances) {
     const y2 = parseFloat(process.env.SKYWALKER_Y);
     const x3 = parseFloat(process.env.SATO_X);
     const y3 = parseFloat(process.env.SATO_Y);
-    const r1 = parseFloat(distances[0]);
-    const r2 = parseFloat(distances[1] ? distances[1] : 0);
-    const r3 = parseFloat(distances[2] ? distances[2] : 0);
+    const [r1, r2, r3] = distances;
 
     const positions = [
         {x: x1, y: y1, distance: r1},
@@ -42,7 +40,6 @@ function getLocations(distances) {
 }
 
 function getMessage(messages) {
-    // validar array strings
     let tempWords = [];
     let words = [];
 
@@ -64,7 +61,20 @@ function getMessage(messages) {
     return message;
 }
 
-router.post('/topsecret', (req, res) => {
+const topsecretValidation = [
+    check('satellites').isArray({ min:1 }).withMessage('Satellites must be an array'),
+    check('satellites.*.name').notEmpty().withMessage('Name is required').isString().withMessage('Must be string'),
+    check('satellites.*.distance').notEmpty().withMessage('Distance is required').isFloat().withMessage('Distance must be float'),
+    check('satellites.*.message').isArray({ min:1 }).withMessage('Message must be a not empty array'),
+    check('satellites.*.message.*').isString().optional().withMessage('Message content must be string')
+];
+
+router.post('/topsecret', topsecretValidation, (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        res.send(errors);
+    }
+
     let r1, r2, r3;
     let error = false;
 
@@ -112,7 +122,18 @@ router.post('/topsecret', (req, res) => {
     
 });
 
-router.post('/topsecret_split/:satellite', async (req, res) => {
+const splitValidation = [
+    check('distance').notEmpty().withMessage('Distance is required').isFloat().withMessage('Distance must be float'),
+    check('message').isArray({ min:1 }).withMessage('Message must be a not empty array'),
+    check('message.*').isString().optional().withMessage('Message content must be string')
+];
+
+router.post('/topsecret_split/:satellite', splitValidation, async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        res.send(errors);
+    }
+
     const satelliteNames = ['kenobi','skywalker','sato'];
     const {satellite} = req.params;
     let names = [];

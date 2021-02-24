@@ -25,7 +25,7 @@ app.get('/', (req, res) => {
 
 // Routes
 const routes = require('./routes/routes');
-app.use('/api', routes);
+app.use('/', routes);
 
 // Catch 404 error
 app.use((req, res) => {
