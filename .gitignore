@@ -9,3 +9,6 @@ package-lock.json
 
 # yaml
 app.yaml
+
+# coverage
+coverage/*

@@ -32,7 +32,7 @@ const getMessage = (messages) => {
             if(word === '')
                 return;
 
-            if(tempWords.filter(tempWord => tempWord.word === word).length < 1) { // si no está en el arreglo -words- agregar palabra con la posicion
+            if(tempWords.filter(tempWord => tempWord.word === word).length < 1) { // si no está en el arreglo -tempWords- agregar palabra con la posicion
                 tempWords.push({word: word, position: index});
             }
         });

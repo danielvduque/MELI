@@ -13,7 +13,7 @@ app.use(bodyParser.json());
 app.set('trust proxy', true);
 
 // Server
-const port = process.env.PORT || 8081;
+const port = process.env.PORT;
 app.listen(port, () => {
     console.log(`ML solution listening at ${port} port`);
 });

@@ -1,20 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const redis = require('redis');
-const bluebird = require('bluebird');
 const { check, validationResult } = require('express-validator');
 const {getLocations, getMessage} = require('../utils/helper');
-
-// redis
-const REDISHOST = process.env.REDISHOST;
-const REDISPORT = process.env.REDISPORT;
-
-const redisClient = redis.createClient(REDISPORT, REDISHOST);
-redisClient.on('error', (err) => console.error('REDIS ERROR: ', err));
-
-// enable async get for redis
-bluebird.promisifyAll(redis.RedisClient.prototype);
-bluebird.promisifyAll(redis.Multi.prototype);
+const redis = require('../redis');
 
 const topsecretValidation = [
     check('satellites').isArray({ min:1 }).withMessage('Satellites must be an array'),
@@ -27,7 +15,7 @@ const topsecretValidation = [
 router.post('/topsecret', topsecretValidation, (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        res.send(errors);
+        return res.status(400).send(errors);
     }
 
     let r1, r2, r3;
@@ -85,7 +73,7 @@ const splitValidation = [
 router.post('/topsecret_split/:satellite', splitValidation, async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        res.send(errors);
+        return res.status(400).send(errors);
     }
 
     const satelliteNames = ['kenobi','skywalker','sato'];
@@ -99,46 +87,49 @@ router.post('/topsecret_split/:satellite', splitValidation, async (req, res) => 
 
     let distanceKey = `${satellite.toLowerCase()}Distance`;
     let messageKey = `${satellite.toLowerCase()}Message`;
-    let transformedMessage = req.body.message.join('-'); // de array a string separado con guion
+    let transformedMessage = req.body.message.join('-');
 
-    redisClient.get('satellites', (err, value) => {
+    redis.redisClient.get('satellites', (err, value) => {
         if(value === null){
-            return redisClient.set('satellites', satellite, redis.print);
+            return redis.redisClient.set('satellites', satellite, () => {});
         }
         
         names = value.split('-');
         if(!names.includes(satellite)){
             names.push(satellite);
             allNames = names.join('-');
-            redisClient.set('satellites', allNames, redis.print);
+            redis.redisClient.set('satellites', allNames, () => {});
         }
     });
 
-    redisClient.set(distanceKey, req.body.distance, redis.print);
-    redisClient.set(messageKey, transformedMessage, redis.print);
+    redis.redisClient.set(distanceKey, req.body.distance, () => {});
+    redis.redisClient.set(messageKey, transformedMessage, () => {});
 
     res.sendStatus(204);
 }); 
 
 router.get('/topsecret_split', (req, res) => {
-    redisClient.get('satellites', async (err, value) => {
+    redis.redisClient.get('satellites', async (err, value) => {
         const TOTAL_SATELLITES = 3;
         let sats = value ? value.split('-') : [];
 
         if(sats.length !== TOTAL_SATELLITES){
-            res.status(400).json({message: 'Not enough information.'});
-            return;
+            return res.status(400).json({message: 'Not enough information.'});
         }
 
-        let kenobiDistance = await redisClient.getAsync('kenobiDistance');
-        let skywalkerDistance = await redisClient.getAsync('skywalkerDistance');
-        let satoDistance = await redisClient.getAsync('satoDistance');
+        let kenobiDistance = await redis.redisClient.getAsync('kenobiDistance');
+        let skywalkerDistance = await redis.redisClient.getAsync('skywalkerDistance');
+        let satoDistance = await redis.redisClient.getAsync('satoDistance');
+        kenobiDistance = parseFloat(kenobiDistance);
+        skywalkerDistance = parseFloat(skywalkerDistance);
+        satoDistance = parseFloat(satoDistance);
+
         const distances = [kenobiDistance, skywalkerDistance, satoDistance];
         const {x,y} = getLocations(distances);
 
-        let kenobiMessage = await redisClient.getAsync('kenobiMessage');
-        let skywalkerMessage = await redisClient.getAsync('skywalkerMessage');
-        let satoMessage = await redisClient.getAsync('satoMessage');
+        let kenobiMessage = await redis.redisClient.getAsync('kenobiMessage');
+        let skywalkerMessage = await redis.redisClient.getAsync('skywalkerMessage');
+        let satoMessage = await redis.redisClient.getAsync('satoMessage');
 
         kenobiMessage = kenobiMessage.split('-');
         skywalkerMessage = skywalkerMessage.split('-');
@@ -146,7 +137,6 @@ router.get('/topsecret_split', (req, res) => {
 
         const messages = [kenobiMessage, skywalkerMessage, satoMessage];
         const message = getMessage(messages);
-        // redisClient.flushall(); // flush variables so it can be processed again
 
         res.status(200).json({
             position: {
